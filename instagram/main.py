@@ -6,7 +6,6 @@ from .scheme import Media, MediaResponse, User, Settings, MediaType
 settings = Settings()
 app = FastAPI()
 instagram_router = APIRouter()
-app.openapi_version
 
 
 @instagram_router.get("/get-media-info", response_model=MediaResponse)

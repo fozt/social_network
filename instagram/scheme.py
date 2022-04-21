@@ -14,7 +14,7 @@ class Media(BaseModel):
         orm_mode = True
 
 
-class MediaType(Enum):
+class MediaType(str, Enum):
     STORIES = 'stories'
     POST = 'post'
     REELS = 'reels'
