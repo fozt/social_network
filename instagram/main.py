@@ -1,4 +1,7 @@
-from fastapi import FastAPI, APIRouter
+import logging
+
+from fastapi import FastAPI, APIRouter, HTTPException
+from instaloader import BadResponseException, InvalidArgumentException
 
 from .logic import InstagramMediaDownloader
 from .scheme import Media, MediaResponse, User, Settings, MediaType
@@ -9,10 +12,15 @@ instagram_router = APIRouter()
 
 
 @instagram_router.get("/get-media-info", response_model=MediaResponse)
-async def info(media_type: MediaType, media_id: str) -> MediaResponse:
-    media = Media.from_orm(HANDLER_MEDIA[media_type](media_id.strip('/')))
-    user = User.from_orm(media_downloader.get_user(media.owner_username))
-    return MediaResponse(user=user, media=media, media_type=media_type)
+async def info(mediaType: MediaType, mediaId: str) -> MediaResponse:
+    try:
+        media = Media.from_orm(HANDLER_MEDIA[mediaType](mediaId.strip('/')))
+        user = User.from_orm(media_downloader.get_user(media.owner_username))
+    except (BadResponseException, InvalidArgumentException, AttributeError, ValueError):
+        logging.error(f'Failed download {mediaId=}. Maybe profile is private')
+        logging.exception('get-media-info Error')
+        raise HTTPException(status_code=404, detail="Media not found")
+    return MediaResponse(user=user, media=media, media_type=mediaType)
 
 
 media_downloader = InstagramMediaDownloader(settings.instagram_login, settings.instagram_password)

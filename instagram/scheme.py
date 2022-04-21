@@ -2,16 +2,22 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel, BaseSettings, Field
+from humps import camelize
 
 
 class Media(BaseModel):
     owner_username: str
     url: str
     date_utc: datetime
+    likes: Optional[int] = Field(alias='countLikes')
+    comments: Optional[int] = Field(alias='countComments')
+    caption: str = Field(default=None, alias='description')
 
     class Config:
         orm_mode = True
+        alias_generator = camelize
+        allow_population_by_field_name = True
 
 
 class MediaType(str, Enum):
@@ -35,12 +41,18 @@ class User(BaseModel):
 
     class Config:
         orm_mode = True
+        alias_generator = camelize
+        allow_population_by_field_name = True
 
 
 class MediaResponse(BaseModel):
     media: Media
     user: User
     media_type: MediaType
+
+    class Config:
+        alias_generator = camelize
+        allow_population_by_field_name = True
 
 
 class Settings(BaseSettings):
