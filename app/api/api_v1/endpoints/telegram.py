@@ -31,7 +31,14 @@ def get_object(url: str):
     obj = crud_tg.get(TgQuery(url=url))
     if obj is None:
         raise HTTPException(status_code=404)
-    obj.files = obj.files
+    return obj
+
+
+@router.get("/preview", response_model=MediaOut)
+def get_object(url: str):
+    obj = crud_tg.download_content(TgQuery(url=url).json())
+    if obj is None:
+        raise HTTPException(status_code=404)
     return obj
 
 

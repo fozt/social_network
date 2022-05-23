@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from fastapi import HTTPException
 from sqlmodel import Session, select
 from starlette import status
+import cachetools.func
 
 from app.db.session import engine
 from app.models.telegram import Bot, Channel, Sticker
@@ -39,7 +40,7 @@ class CRUDTg:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Resource already exists"
             )
-        content = self.content_mapping_download[tg_query.type](tg_query)
+        content = self.download_content(tg_query.json())
         with Session(engine) as session:
             session.add(content)
             session.commit()
@@ -47,6 +48,14 @@ class CRUDTg:
             # session.delete(content)
             # session.commit()
         return content
+
+    @cachetools.func.ttl_cache(maxsize=None, ttl=60 * 60 * 24)
+    def download_content(self, tg_query_json: str):
+        tg_query = TgQuery.parse_raw(tg_query_json)
+        try:
+            return self.content_mapping_download[tg_query.type](tg_query)
+        except ValueError:
+            raise HTTPException(status_code=404)
 
     def _download_channel(self, tg_query: TgQuery) -> Channel:
         channel = self.tg_downloader.download_channel_info(tg_query.name)

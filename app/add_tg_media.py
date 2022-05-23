@@ -24,29 +24,31 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36'
 }
 
-for page_obj in tqdm(['stickers', 'channels', 'bots']):
-    for page in trange(1, 6):
-        url = f'https://telegramchannels.me/{page_obj}?category=all&sort=rating&page={page}'
-        response = requests.request("GET", url.format(page), headers=headers, data=payload)
-        html = bs4.BeautifulSoup(response.text, 'html')
-        files = html.find_all(
-            'div', {'class': 'column is-one-third-widescreen is-one-third-desktop is-half-tablet is-full-mobile'})
-        for file in tqdm(files):
-            type_obj, category = file.find(attrs={'class': 'card-label'}).text.strip().lower().split(' / ')
-            name = file.find('a', attrs={'class': 'is-clickable is-block has-text-grey-darker'})['href'].split('/')[-1]
-            if type_obj in ('channel', 'group', 'bot'):
-                tg_url = f"https://t.me/{name}"
-            elif type_obj == 'sticker':
-                tg_url = f'https://t.me/addstickers/{name.split("-")[1]}'
-            else:
-                print(f'Warn! {type_obj}')
-                continue
+for language in ['ru', 'en']:
 
-            resp = requests.request("POST", "http://localhost:8000/telegram/", data=json.dumps({
-                "url": tg_url,
-                "category": category,
-                "language": "en"
-            }))
-            time.sleep(0.1)
-            if resp.status_code not in (200, 409):
-                print(type_obj, name, resp)
+    for page_obj in tqdm(['stickers', 'channels', 'bots']):
+        for page in trange(1, 6):
+            url = f'https://telegramchannels.me/{language}/{page_obj}?category=all&sort=rating&page={page}'
+            response = requests.request("GET", url.format(page), headers=headers, data=payload)
+            html = bs4.BeautifulSoup(response.text, 'html')
+            files = html.find_all(
+                'div', {'class': 'column is-one-third-widescreen is-one-third-desktop is-half-tablet is-full-mobile'})
+            for file in tqdm(files):
+                type_obj, category = file.find(attrs={'class': 'card-label'}).text.strip().lower().split(' / ')
+                name = file.find('a', attrs={'class': 'is-clickable is-block has-text-grey-darker'})['href'].split('/')[-1]
+                if type_obj in ('channel', 'group', 'bot') or type_obj in ('канал', 'бот', 'группа'):
+                    tg_url = f"https://t.me/{name}"
+                elif type_obj == 'sticker' or type_obj == 'стикер':
+                    tg_url = f'https://t.me/addstickers/{name.split("-")[1]}'
+                else:
+                    print(f'Warn! {type_obj}')
+                    continue
+
+                resp = requests.request("POST", "http://localhost:8000/telegram/", data=json.dumps({
+                    "url": tg_url,
+                    "category": category,
+                    "language": language
+                }))
+                time.sleep(0.1)
+                if resp.status_code not in (200, 409):
+                    print(type_obj, name, resp)
