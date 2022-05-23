@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+
+  fastapi_tg:
+    container_name: fastapi_tg
+    build: ./social
+    restart: always
+    command: "uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000"
+    volumes:
+      - ./social:/code
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    env_file: ".env"
+    depends_on:
+      - database_tg
+
+  database_tg:
+    image: postgres:13.4
+    restart: always
+    container_name: database_tg
+    ports:
+      - "5454:5432"  # Remove this on production
+    expose:
+      - 5432
+    volumes:
+      - ./db_docker:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}

@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import re
 import string
 import time
 import urllib.parse
@@ -12,7 +13,6 @@ from bs4 import BeautifulSoup
 
 from app.core.config import settings
 from app.schemas.telegram import (
-    BaseDownloadContent,
     BotDownload,
     ChannelDownload,
     StickerDownload,
@@ -38,7 +38,7 @@ class StickerDownloader:
     def __init__(self, token, session=None, multithreading=4):
         self.THREADS = multithreading
         self.token = token
-        self.cwd = assure_folder_exists("downloads", root=os.getcwd())
+        self.cwd = assure_folder_exists("/tmp/downloads", root=os.getcwd())
         if session is None:
             self.session = requests.Session()
         else:
@@ -63,7 +63,6 @@ class StickerDownloader:
             return res
 
         except Exception as e:
-            print(f"{res.json()}")
             print('API method {} failed. Error: "{}"'.format(fstring, e))
             return None
 
@@ -189,37 +188,43 @@ class TgDownloader(StickerDownloader):
         super().__init__(token)
         self.tg_url = "https://t.me/{}"
 
-    def get_count_subscribers(self, name) -> int:
-        params = {"chat_id": f"@{name}"}
-        res = self._api_request("getChatMemberCount", params)
-        return res["result"]
+    # def get_count_subscribers(self, name) -> int:
+    #     params = {"chat_id": f"@{name}"}
+    #     res = self._api_request("getChatMemberCount", params)
+    #     return res["result"]
 
-    def get_channel_base_info(self, name) -> BaseDownloadContent:
-        params = {"chat_id": f"@{name}"}
-        try:
-            data = self._api_request("getChat", params)["result"]
-            res = {
-                "description": data.get("description"),
-                "title": data["title"]
-                # 'url': html.head.find('meta', {'name': "twitter:app:url:googleplay"})['content']
-            }
-            if "photo" in data:
-                res["imageUrl"] = self.get_file(data["photo"]["small_file_id"])["link"]
-        except (ValueError, TypeError):
-            raise ValueError("Invalid content url")
-
-        return BaseDownloadContent.parse_obj(res)
+    # def get_channel_base_info(self, name) -> BaseDownloadContent:
+    #     params = {"chat_id": f"@{name}"}
+    #     try:
+    #         data = self._api_request("getChat", params)["result"]
+    #         res = {
+    #             "description": data.get("description"),
+    #             "title": data["title"]
+    #         }
+    #         if "photo" in data:
+    #             res["imageUrl"] = self.get_file(data["photo"]["small_file_id"])["link"]
+    #     except (ValueError, TypeError):
+    #         raise ValueError("Invalid content url")
+    #
+    #     return BaseDownloadContent.parse_obj(res)
 
     def download_sticker_info(self, name) -> StickerDownload:
         obj = self.get_sticker_set(name)
 
         return obj
 
+    @staticmethod
+    def _get_count_subscribers(html):
+        count_subscribers = int(
+            re.sub(r'\s', '',
+                   re.search(r'[\d\s]+', html.body.find("div", {"class": "tgme_page_extra"}).text).group()))
+        return count_subscribers
+
     def _get_html(self, name):
         return BeautifulSoup(requests.get(self.tg_url.format(name)).text, "lxml")
 
     @staticmethod
-    def _get_bot_info(html):
+    def _get_base_info(html):
         res = {
             "description": html.head.find(property="og:description")["content"],
             "title": html.head.find(property="og:title")["content"],
@@ -233,13 +238,14 @@ class TgDownloader(StickerDownloader):
 
     def download_bot_info(self, name) -> BotDownload:
         html = self._get_html(name)
-        obj = self._get_bot_info(html)
+        obj = self._get_base_info(html)
         return BotDownload.parse_obj(obj)
 
     def download_channel_info(self, name) -> ChannelDownload:
-        obj = self.get_channel_base_info(name).dict()
-        count_subscribers = self.get_count_subscribers(name)
+        html = self._get_html(name)
+        obj = self._get_base_info(html)
+        count_subscribers = self._get_count_subscribers(html)
         return ChannelDownload(**obj, countSubscribers=count_subscribers)
 
 
-tg_downloader = TgDownloader(token=settings.tg_token)
+tg_downloader = TgDownloader(token=settings.TG_TOKEN)

@@ -1,9 +1,9 @@
 from typing import List, Optional, Union
 
+import cachetools.func
 from fastapi import HTTPException
 from sqlmodel import Session, select
 from starlette import status
-import cachetools.func
 
 from app.db.session import engine
 from app.models.telegram import Bot, Channel, Sticker
@@ -31,8 +31,12 @@ class CRUDTg:
         return {
             Sorting.ASC_TIME: table.timeStampLoad.asc(),
             Sorting.DESC_TIME: table.timeStampLoad.desc(),
-            Sorting.ASC_SUBSCRIPTIONS: table.countSubscribers.asc() if table == Channel else None,
-            Sorting.DESC_SUBSCRIPTIONS: table.countSubscribers.desc() if table == Channel else None,
+            Sorting.ASC_SUBSCRIPTIONS: table.countSubscribers.asc()
+            if table == Channel
+            else None,
+            Sorting.DESC_SUBSCRIPTIONS: table.countSubscribers.desc()
+            if table == Channel
+            else None,
         }[condition]
 
     def create(self, tg_query: TgQuery) -> Union[Bot, Channel, Sticker]:

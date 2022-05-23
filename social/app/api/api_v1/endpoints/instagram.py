@@ -23,7 +23,7 @@ def info(mediaType: MediaType, mediaId: str) -> MediaResponse:
 
 
 media_downloader = InstagramMediaDownloader(
-    settings.instagram_login, settings.instagram_password
+    settings.INSTAGRAM_LOGIN, settings.INSTAGRAM_PASSWORD
 )
 HANDLER_MEDIA = {
     MediaType.POST: media_downloader.get_post,
