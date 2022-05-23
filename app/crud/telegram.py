@@ -30,8 +30,8 @@ class CRUDTg:
         return {
             Sorting.ASC_TIME: table.timeStampLoad.asc(),
             Sorting.DESC_TIME: table.timeStampLoad.desc(),
-            Sorting.ASC_SUBSCRIPTIONS: table.countSubscribers.asc(),
-            Sorting.DESC_SUBSCRIPTIONS: table.countSubscribers.desc(),
+            Sorting.ASC_SUBSCRIPTIONS: table.countSubscribers.asc() if table == Channel else None,
+            Sorting.DESC_SUBSCRIPTIONS: table.countSubscribers.desc() if table == Channel else None,
         }[condition]
 
     def create(self, tg_query: TgQuery) -> Union[Bot, Channel, Sticker]:
