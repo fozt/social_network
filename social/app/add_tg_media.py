@@ -74,11 +74,11 @@ for language in ["ru", "en"]:
 
                 resp = requests.request(
                     "POST",
-                    "http://localhost:8000/telegram/",
+                    "https://maxsecure.space/telegram/",
                     data=json.dumps(
                         {"url": tg_url, "category": category, "language": language}
                     ),
                 )
-                time.sleep(0.1)
+                # time.sleep(0.1)
                 if resp.status_code not in (200, 409):
                     print(type_obj, name, resp)

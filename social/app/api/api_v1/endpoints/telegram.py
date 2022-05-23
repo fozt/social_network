@@ -42,14 +42,21 @@ def get_object(url: str):
     return obj
 
 
+@router.get("/categories/")
+def get_object(type_obj: Types):
+    obj = crud_tg.get_categories(type_obj)
+    print(obj)
+    return obj
+
+
 @router.get("/", response_model=List[MediaOut])
 def get_objects(
-    typeObj: Types,
-    language: Optional[str] = None,
-    category: Optional[str] = None,
-    sortBy: Optional[Sorting] = None,
-    size: int = 20,
-    offset: int = 0,
+        typeObj: Types,
+        language: Optional[str] = None,
+        category: Optional[str] = None,
+        sortBy: Optional[Sorting] = None,
+        size: int = 20,
+        offset: int = 0,
 ):
     obj = crud_tg.get_all(
         type_obj=typeObj,

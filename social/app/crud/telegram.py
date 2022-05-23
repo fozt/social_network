@@ -81,6 +81,11 @@ class CRUDTg:
             data = session.get(self.table_mapping[tg_query.type], tg_query.url)
             return data
 
+    def get_categories(self, type_obj: Types):
+        table = self.table_mapping[type_obj]
+        with Session(engine) as session:
+            return session.exec(select(table.category).distinct()).all()
+
     def get_all(
         self,
         type_obj: Types,
