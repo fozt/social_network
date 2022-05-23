@@ -1,15 +1,23 @@
-import instaloader
 import cachetools.func
+import instaloader
 
 
 class InstagramMediaDownloader:
     def __init__(self, login: str, password: str):
         self.account = instaloader.Instaloader()
-        self.account.login(login, password)
+        self._login = login
+        self._password = password
+        self.is_login = False
 
     @property
     def context(self):
+        if not self.is_login:
+            self.login()
+            self.is_login = True
         return self.account.context
+
+    def login(self):
+        self.account.login(self._login, self._password)
 
     @cachetools.func.ttl_cache(maxsize=None, ttl=60 * 60 * 2)
     def get_post(self, shortcode: str):
@@ -29,4 +37,3 @@ class InstagramMediaDownloader:
     def get_user(self, username: str):
         user = instaloader.Profile.from_username(self.context, username)
         return user
-
