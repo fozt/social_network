@@ -1,9 +1,8 @@
 import json
-import time
 
 import bs4
 import requests
-from tqdm.auto import tqdm, trange
+from tqdm.auto import tqdm
 
 payload = {}
 headers = {
@@ -32,53 +31,55 @@ headers = {
     ),
 }
 
-for language in ["ru", "en"]:
-
-    for page_obj in tqdm(["stickers", "channels", "bots"]):
-        for page in trange(1, 6):
-            url = f"https://telegramchannels.me/{language}/{page_obj}?category=all&sort=rating&page={page}"
-            response = requests.request(
-                "GET", url.format(page), headers=headers, data=payload
-            )
-            html = bs4.BeautifulSoup(response.text, "html")
-            files = html.find_all(
-                "div",
-                {
-                    "class": (
-                        "column is-one-third-widescreen is-one-third-desktop"
-                        " is-half-tablet is-full-mobile"
+for language in ["en", "ru"]:
+    for category in tqdm(
+            ['art-design', 'communication', 'news', 'blogs', 'books-magazine', 'economics-politics', 'cryptocurrencies',
+             'education', 'entertainment', 'games-apps', 'health', 'music', 'science', 'love']):
+        for page_obj in tqdm(["stickers", "channels", "bots"]):
+            for page in range(1, 3):
+                url = f"https://telegramchannels.me/{language}/{page_obj}?category={category}&sort=rating&page={page}"
+                response = requests.request(
+                    "GET", url.format(page), headers=headers, data=payload
+                )
+                html = bs4.BeautifulSoup(response.text, "html")
+                files = html.find_all(
+                    "div",
+                    {
+                        "class": (
+                            "column is-one-third-widescreen is-one-third-desktop"
+                            " is-half-tablet is-full-mobile"
+                        )
+                    },
+                )
+                for file in files:
+                    type_obj, _ = (
+                        file.find(attrs={"class": "card-label"})
+                            .text.strip()
+                            .lower()
+                            .split(" / ")
                     )
-                },
-            )
-            for file in tqdm(files):
-                type_obj, category = (
-                    file.find(attrs={"class": "card-label"})
-                    .text.strip()
-                    .lower()
-                    .split(" / ")
-                )
-                name = file.find(
-                    "a", attrs={"class": "is-clickable is-block has-text-grey-darker"}
-                )["href"].split("/")[-1]
-                if type_obj in ("channel", "group", "bot") or type_obj in (
-                    "канал",
-                    "бот",
-                    "группа",
-                ):
-                    tg_url = f"https://t.me/{name}"
-                elif type_obj == "sticker" or type_obj == "стикер":
-                    tg_url = f'https://t.me/addstickers/{name.split("-")[1]}'
-                else:
-                    print(f"Warn! {type_obj}")
-                    continue
+                    name = file.find(
+                        "a", attrs={"class": "is-clickable is-block has-text-grey-darker"}
+                    )["href"].split("/")[-1]
+                    if type_obj in ("channel", "group", "bot") or type_obj in (
+                            "канал",
+                            "бот",
+                            "группа",
+                    ):
+                        tg_url = f"https://t.me/{name}"
+                    elif type_obj == "sticker" or type_obj == "стикер":
+                        tg_url = f'https://t.me/addstickers/{name.split("-")[1]}'
+                    else:
+                        print(f"Warn! {type_obj}")
+                        continue
 
-                resp = requests.request(
-                    "POST",
-                    "https://maxsecure.space/telegram/",
-                    data=json.dumps(
-                        {"url": tg_url, "category": category, "language": language}
-                    ),
-                )
-                # time.sleep(0.1)
-                if resp.status_code not in (200, 409):
-                    print(type_obj, name, resp)
+                    resp = requests.request(
+                        "POST",
+                        "https://maxsecure.space/telegram/",
+                        data=json.dumps(
+                            {"url": tg_url, "category": category, "language": language}
+                        ),
+                    )
+                    # time.sleep(0.1)
+                    if resp.status_code not in (200, 409):
+                        print(type_obj, name, resp)

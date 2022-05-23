@@ -215,9 +215,12 @@ class TgDownloader(StickerDownloader):
 
     @staticmethod
     def _get_count_subscribers(html):
-        count_subscribers = int(
-            re.sub(r'\s', '',
-                   re.search(r'[\d\s]+', html.body.find("div", {"class": "tgme_page_extra"}).text).group()))
+        try:
+            count_subscribers = int(
+                re.sub(r'\s', '',
+                       re.search(r'[\d\s]+', html.body.find("div", {"class": "tgme_page_extra"}).text).group()))
+        except Exception as exc:
+            raise ValueError(str(exc))
         return count_subscribers
 
     def _get_html(self, name):

@@ -58,8 +58,8 @@ class CRUDTg:
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
             return self.content_mapping_download[tg_query.type](tg_query)
-        except ValueError:
-            raise HTTPException(status_code=404)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
     def _download_channel(self, tg_query: TgQuery) -> Channel:
         channel = self.tg_downloader.download_channel_info(tg_query.name)
