@@ -10,7 +10,7 @@ from app.schemas.telegram import Sorting, TgQuery, TgQueryInput, Types
 router = APIRouter()
 
 
-@router.post("/", response_model=MediaOut)
+@router.post("/new", response_model=MediaOut)
 def add_object(query: TgQueryInput):
     try:
         query = TgQuery.parse_obj(query.dict())
