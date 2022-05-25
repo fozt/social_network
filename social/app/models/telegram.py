@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSON, OID
 from sqlmodel import Field, SQLModel
 
 
@@ -36,3 +36,8 @@ class Sticker(BaseTgContent, table=True):
 class MediaOut(BaseTgContent):
     countSubscribers: Optional[int] = None
     files: Optional[List[str]] = None
+
+
+class MediaPhoto(SQLModel, table=True):
+    url: str = Field(primary_key=True)
+    media: int = Field(sa_column=Column(OID))

@@ -12,11 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from app.core.config import settings
-from app.schemas.telegram import (
-    BotDownload,
-    ChannelDownload,
-    StickerDownload,
-)
+from app.schemas.telegram import BotDownload, ChannelDownload, StickerDownload
 
 
 def assure_folder_exists(folder, root):
@@ -217,8 +213,15 @@ class TgDownloader(StickerDownloader):
     def _get_count_subscribers(html):
         try:
             count_subscribers = int(
-                re.sub(r'\s', '',
-                       re.search(r'[\d\s]+', html.body.find("div", {"class": "tgme_page_extra"}).text).group()))
+                re.sub(
+                    r"\s",
+                    "",
+                    re.search(
+                        r"[\d\s]+",
+                        html.body.find("div", {"class": "tgme_page_extra"}).text,
+                    ).group(),
+                )
+            )
         except Exception as exc:
             raise ValueError(str(exc))
         return count_subscribers

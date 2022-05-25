@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from app.crud.telegram import crud_tg
@@ -33,7 +33,7 @@ def get_object(url: str):
 
 
 @router.get("/preview", response_model=MediaOut)
-def get_object(url: str):
+def preview_object(url: str):
     obj = crud_tg.get(TgQuery(url=url))
     if obj is None:
         obj = crud_tg.download_content(TgQuery(url=url).json())
@@ -43,20 +43,19 @@ def get_object(url: str):
 
 
 @router.get("/categories/")
-def get_object(type_obj: Types):
+def get_categories(type_obj: Types):
     obj = crud_tg.get_categories(type_obj)
-    print(obj)
     return obj
 
 
 @router.get("/", response_model=List[MediaOut])
 def get_objects(
-        typeObj: Types,
-        language: Optional[str] = None,
-        category: Optional[str] = None,
-        sortBy: Optional[Sorting] = None,
-        size: int = 20,
-        offset: int = 0,
+    typeObj: Types,
+    language: Optional[str] = None,
+    category: Optional[str] = None,
+    sortBy: Optional[Sorting] = None,
+    size: int = 20,
+    offset: int = 0,
 ):
     obj = crud_tg.get_all(
         type_obj=typeObj,
@@ -69,3 +68,9 @@ def get_objects(
     if obj is None:
         raise HTTPException(status_code=404)
     return obj
+
+
+@router.get("/image")
+def get_image(url: str):
+    image_bytes = crud_tg.get_media(url=url)
+    return Response(content=image_bytes, media_type="image/jpeg")

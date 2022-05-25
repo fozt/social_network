@@ -1,14 +1,23 @@
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
+from urllib.parse import urlencode, urljoin
 
 import cachetools.func
+import requests
 from fastapi import HTTPException
 from sqlmodel import Session, select
 from starlette import status
 
+from app.core.config import settings
 from app.db.session import engine
-from app.models.telegram import Bot, Channel, Sticker
+from app.models.telegram import Bot, Channel, MediaPhoto, Sticker
 from app.schemas.telegram import Sorting, TgQuery, Types
 from app.services.telegram import tg_downloader
+
+
+def generate_url(url_endpoint: str, params: Dict):
+    query_string = urlencode(params)
+    url = f"{url_endpoint}?{query_string}"
+    return url
 
 
 class CRUDTg:
@@ -57,7 +66,21 @@ class CRUDTg:
     def download_content(self, tg_query_json: str):
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
-            return self.content_mapping_download[tg_query.type](tg_query)
+            data = self.content_mapping_download[tg_query.type](tg_query)
+            conn = engine.raw_connection()
+            l_obj = conn.lobject(0, "wb", 0)
+            l_obj.write(requests.get(data.imageUrl).content)
+            conn.commit()
+            conn.close()
+            with Session(engine) as session:
+                content = MediaPhoto(url=tg_query.url, media=l_obj.oid)
+                session.add(content)
+                session.commit()
+            data.imageUrl = generate_url(
+                urljoin(settings.BASE_URL, "/telegram/image"), {"url": data.url}
+            )
+            return data
+
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
 
@@ -80,6 +103,15 @@ class CRUDTg:
         with Session(engine) as session:
             data = session.get(self.table_mapping[tg_query.type], tg_query.url)
             return data
+
+    def get_media(self, url) -> bytes:
+        with Session(engine) as session:
+            oid = session.get(MediaPhoto, url).media
+            if oid is None:
+                raise HTTPException(status_code=404)
+            conn = engine.raw_connection()
+            l_obj = conn.lobject(oid, "rb")
+            return l_obj.read()
 
     def get_categories(self, type_obj: Types):
         table = self.table_mapping[type_obj]

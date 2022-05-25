@@ -33,8 +33,23 @@ headers = {
 
 for language in ["en", "ru"]:
     for category in tqdm(
-            ['art-design', 'communication', 'news', 'blogs', 'books-magazine', 'economics-politics', 'cryptocurrencies',
-             'education', 'entertainment', 'games-apps', 'health', 'music', 'science', 'love']):
+        [
+            "art-design",
+            "communication",
+            "news",
+            "blogs",
+            "books-magazine",
+            "economics-politics",
+            "cryptocurrencies",
+            "education",
+            "entertainment",
+            "games-apps",
+            "health",
+            "music",
+            "science",
+            "love",
+        ]
+    ):
         for page_obj in tqdm(["stickers", "channels", "bots"]):
             for page in range(1, 3):
                 url = f"https://telegramchannels.me/{language}/{page_obj}?category={category}&sort=rating&page={page}"
@@ -54,17 +69,18 @@ for language in ["en", "ru"]:
                 for file in files:
                     type_obj, _ = (
                         file.find(attrs={"class": "card-label"})
-                            .text.strip()
-                            .lower()
-                            .split(" / ")
+                        .text.strip()
+                        .lower()
+                        .split(" / ")
                     )
                     name = file.find(
-                        "a", attrs={"class": "is-clickable is-block has-text-grey-darker"}
+                        "a",
+                        attrs={"class": "is-clickable is-block has-text-grey-darker"},
                     )["href"].split("/")[-1]
                     if type_obj in ("channel", "group", "bot") or type_obj in (
-                            "канал",
-                            "бот",
-                            "группа",
+                        "канал",
+                        "бот",
+                        "группа",
                     ):
                         tg_url = f"https://t.me/{name}"
                     elif type_obj == "sticker" or type_obj == "стикер":
