@@ -54,6 +54,10 @@ class CRUDTg:
                 status_code=status.HTTP_409_CONFLICT, detail="Resource already exists"
             )
         content = self.download_content(tg_query.json())
+        content.imageUrl = generate_url(
+            urljoin(settings.BASE_URL, "/telegram/image"), {"url": tg_query.url}
+        )
+        print(f'{content=}')
         with Session(engine) as session:
             session.add(content)
             session.commit()
@@ -62,20 +66,27 @@ class CRUDTg:
             # session.commit()
         return content
 
-    @cachetools.func.ttl_cache(maxsize=None, ttl=60 * 60 * 24)
+    # @cachetools.func.ttl_cache(maxsize=None, ttl=60 * 60 * 24)
     def download_content(self, tg_query_json: str):
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
             data = self.content_mapping_download[tg_query.type](tg_query)
-            conn = engine.raw_connection()
-            l_obj = conn.lobject(0, "wb", 0)
-            l_obj.write(requests.get(data.imageUrl).content)
-            conn.commit()
-            conn.close()
+            print(f'{data.imageUrl=}')
             with Session(engine) as session:
-                content = MediaPhoto(url=tg_query.url, media=l_obj.oid)
-                session.add(content)
-                session.commit()
+                if session.get(MediaPhoto, data.url) is None:
+                    conn = engine.raw_connection()
+                    try:
+                        l_obj = conn.lobject(0, "wb", 0)
+                        l_obj.write(requests.get(data.imageUrl).content)
+                        conn.commit()
+                    except:
+                        conn.rollback()
+                        raise HTTPException(status_code=400)
+                    finally:
+                        conn.close()
+                    content = MediaPhoto(url=tg_query.url, media=l_obj.oid)
+                    session.add(content)
+                    session.commit()
             data.imageUrl = generate_url(
                 urljoin(settings.BASE_URL, "/telegram/image"), {"url": data.url}
             )
@@ -110,8 +121,14 @@ class CRUDTg:
             if oid is None:
                 raise HTTPException(status_code=404)
             conn = engine.raw_connection()
-            l_obj = conn.lobject(oid, "rb")
-            return l_obj.read()
+            try:
+                l_obj = conn.lobject(oid, "rb")
+            except:
+                conn.rollback()
+                raise HTTPException(status_code=400)
+            finally:
+                conn.close()
+        return l_obj.read()
 
     def get_categories(self, type_obj: Types):
         table = self.table_mapping[type_obj]
@@ -119,25 +136,25 @@ class CRUDTg:
             return session.exec(select(table.category).distinct()).all()
 
     def get_all(
-        self,
-        type_obj: Types,
-        category: str,
-        language: str,
-        sort_by: Optional[Sorting],
-        size: int = 20,
-        offset: int = 0,
+            self,
+            type_obj: Types,
+            category: str,
+            language: str,
+            sort_by: Optional[Sorting],
+            size: int = 20,
+            offset: int = 0,
     ) -> List[Union[Channel, Bot, Sticker]]:
         with Session(engine) as session:
             table = self.table_mapping[type_obj]
             query = (
                 select(table)
-                .where(table.language == language if language is not None else True)
-                .where(table.category == category if category is not None else True)
-                .order_by(
+                    .where(table.language == language if language is not None else True)
+                    .where(table.category == category if category is not None else True)
+                    .order_by(
                     self.sort_condition(table, sort_by) if sort_by is not None else True
                 )
-                .offset(offset)
-                .limit(size)
+                    .offset(offset)
+                    .limit(size)
             )
             return session.exec(query).all()
 
