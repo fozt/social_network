@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSON, OID
+from sqlalchemy.dialects.postgresql import JSON, TEXT
 from sqlmodel import Field, SQLModel
 
 
@@ -40,4 +40,4 @@ class MediaOut(BaseTgContent):
 
 class MediaPhoto(SQLModel, table=True):
     url: str = Field(primary_key=True)
-    media: int = Field(sa_column=Column(OID))
+    media: str = Field(sa_column=Column(TEXT))

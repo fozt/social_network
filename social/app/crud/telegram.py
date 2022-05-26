@@ -1,3 +1,4 @@
+import base64
 from typing import Dict, List, Optional, Union
 from urllib.parse import urlencode, urljoin
 
@@ -57,7 +58,7 @@ class CRUDTg:
         content.imageUrl = generate_url(
             urljoin(settings.BASE_URL, "/telegram/image"), {"url": tg_query.url}
         )
-        print(f'{content=}')
+        print(f"{content=}")
         with Session(engine) as session:
             session.add(content)
             session.commit()
@@ -71,20 +72,15 @@ class CRUDTg:
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
             data = self.content_mapping_download[tg_query.type](tg_query)
-            print(f'{data.imageUrl=}')
+            print(f"{data.imageUrl=}")
             with Session(engine) as session:
                 if session.get(MediaPhoto, data.url) is None:
-                    conn = engine.raw_connection()
-                    try:
-                        l_obj = conn.lobject(0, "wb", 0)
-                        l_obj.write(requests.get(data.imageUrl).content)
-                        conn.commit()
-                    except:
-                        conn.rollback()
-                        raise HTTPException(status_code=400)
-                    finally:
-                        conn.close()
-                    content = MediaPhoto(url=tg_query.url, media=l_obj.oid)
+                    content = MediaPhoto(
+                        url=data.url,
+                        media=base64.b64encode(
+                            requests.get(data.imageUrl).content
+                        ).decode(),
+                    )
                     session.add(content)
                     session.commit()
             data.imageUrl = generate_url(
@@ -117,18 +113,10 @@ class CRUDTg:
 
     def get_media(self, url) -> bytes:
         with Session(engine) as session:
-            oid = session.get(MediaPhoto, url).media
-            if oid is None:
-                raise HTTPException(status_code=404)
-            conn = engine.raw_connection()
-            try:
-                l_obj = conn.lobject(oid, "rb")
-            except:
-                conn.rollback()
-                raise HTTPException(status_code=400)
-            finally:
-                conn.close()
-        return l_obj.read()
+            media_b64 = session.get(MediaPhoto, url)
+        if media_b64 is None:
+            raise HTTPException(status_code=404)
+        return base64.b64decode(media_b64.media.encode())
 
     def get_categories(self, type_obj: Types):
         table = self.table_mapping[type_obj]
@@ -136,25 +124,25 @@ class CRUDTg:
             return session.exec(select(table.category).distinct()).all()
 
     def get_all(
-            self,
-            type_obj: Types,
-            category: str,
-            language: str,
-            sort_by: Optional[Sorting],
-            size: int = 20,
-            offset: int = 0,
+        self,
+        type_obj: Types,
+        category: str,
+        language: str,
+        sort_by: Optional[Sorting],
+        size: int = 20,
+        offset: int = 0,
     ) -> List[Union[Channel, Bot, Sticker]]:
         with Session(engine) as session:
             table = self.table_mapping[type_obj]
             query = (
                 select(table)
-                    .where(table.language == language if language is not None else True)
-                    .where(table.category == category if category is not None else True)
-                    .order_by(
+                .where(table.language == language if language is not None else True)
+                .where(table.category == category if category is not None else True)
+                .order_by(
                     self.sort_condition(table, sort_by) if sort_by is not None else True
                 )
-                    .offset(offset)
-                    .limit(size)
+                .offset(offset)
+                .limit(size)
             )
             return session.exec(query).all()
 
