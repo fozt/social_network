@@ -7,3 +7,11 @@ docker-compose up --build
 ```sh
 docker exec -it fastapi_tg python app/db/session.py
 ```
+
+## Linters
+
+```sh
+cd social
+poetry run black .
+poetry run isort --sp pyproject.toml .
+```

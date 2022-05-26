@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSON, TEXT
@@ -13,12 +14,13 @@ class BaseDownloadContent(SQLModel):
 
 
 class BaseTgContent(BaseDownloadContent):
+    id: UUID = Field(default_factory=uuid4, nullable=False, primary_key=True)
     name: str
     language: Optional[str]
     category: Optional[str]
     timeStampLoad: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     timeStampUpdated: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    url: str = Field(default=None, primary_key=True, nullable=False)
+    url: str = Field(default=None, nullable=False, sa_column_kwargs={"unique": True})
 
 
 class Channel(BaseTgContent, table=True):
@@ -36,8 +38,3 @@ class Sticker(BaseTgContent, table=True):
 class MediaOut(BaseTgContent):
     countSubscribers: Optional[int] = None
     files: Optional[List[str]] = None
-
-
-class MediaPhoto(SQLModel, table=True):
-    url: str = Field(primary_key=True)
-    media: str = Field(sa_column=Column(TEXT))

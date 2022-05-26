@@ -31,7 +31,7 @@ headers = {
     ),
 }
 
-for language in ["en", "ru"]:
+for language in tqdm(["en", "ru"]):
     for category in tqdm(
         [
             "art-design",
@@ -50,7 +50,7 @@ for language in ["en", "ru"]:
             "love",
         ]
     ):
-        for page_obj in tqdm(["stickers", "channels", "bots"]):
+        for page_obj in ["stickers", "channels", "bots"]:
             for page in range(1, 3):
                 url = f"https://telegramchannels.me/{language}/{page_obj}?category={category}&sort=rating&page={page}"
                 response = requests.request(
@@ -91,11 +91,14 @@ for language in ["en", "ru"]:
 
                     resp = requests.request(
                         "POST",
-                        "https://maxsecure.space/telegram/",
+                        "https://maxsecure.space/telegram/new",
                         data=json.dumps(
                             {"url": tg_url, "category": category, "language": language}
                         ),
                     )
                     # time.sleep(0.1)
-                    if resp.status_code not in (200, 409):
-                        print(type_obj, name, resp)
+                    try:
+                        if resp.status_code not in (200, 409):
+                            print(type_obj, name, resp.json())
+                    except:
+                        pass

@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 from pydantic import BaseSettings
 
@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     DATABASE_HOST: str
     DATABASE_PORT: Union[int, str]
     DATABASE_NAME: str
-    BASE_URL: Optional[str] = None
+    FILES_URL: str
+    FILES_PATH: str
 
     class Config:
         env_file = ".env"

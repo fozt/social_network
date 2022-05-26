@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import List, Optional
+from uuid import UUID, uuid4
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 from app.models.telegram import BaseDownloadContent
 
@@ -26,6 +27,7 @@ class TgQueryInput(BaseModel):
 
 
 class TgQuery(TgQueryInput):
+    id: Optional[UUID] = Field(default_factory=uuid4)
     name: Optional[str]
     type: Optional[Types]
 

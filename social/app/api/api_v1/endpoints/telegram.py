@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from app.crud.telegram import crud_tg
@@ -68,9 +68,3 @@ def get_objects(
     if obj is None:
         raise HTTPException(status_code=404)
     return obj
-
-
-@router.get("/image")
-def get_image(url: str):
-    image_bytes = crud_tg.get_media(url=url)
-    return Response(content=image_bytes, media_type="image/jpeg")

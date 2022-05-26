@@ -1,8 +1,8 @@
 import base64
-from typing import Dict, List, Optional, Union
-from urllib.parse import urlencode, urljoin
+import os.path
+from typing import List, Optional, Union
+from urllib.parse import urljoin
 
-import cachetools.func
 import requests
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -10,15 +10,9 @@ from starlette import status
 
 from app.core.config import settings
 from app.db.session import engine
-from app.models.telegram import Bot, Channel, MediaPhoto, Sticker
+from app.models.telegram import Bot, Channel, Sticker
 from app.schemas.telegram import Sorting, TgQuery, Types
 from app.services.telegram import tg_downloader
-
-
-def generate_url(url_endpoint: str, params: Dict):
-    query_string = urlencode(params)
-    url = f"{url_endpoint}?{query_string}"
-    return url
 
 
 class CRUDTg:
@@ -55,16 +49,11 @@ class CRUDTg:
                 status_code=status.HTTP_409_CONFLICT, detail="Resource already exists"
             )
         content = self.download_content(tg_query.json())
-        content.imageUrl = generate_url(
-            urljoin(settings.BASE_URL, "/telegram/image"), {"url": tg_query.url}
-        )
-        print(f"{content=}")
+        content.imageUrl = content.imageUrl
         with Session(engine) as session:
             session.add(content)
             session.commit()
             session.refresh(content)
-            # session.delete(content)
-            # session.commit()
         return content
 
     # @cachetools.func.ttl_cache(maxsize=None, ttl=60 * 60 * 24)
@@ -72,20 +61,12 @@ class CRUDTg:
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
             data = self.content_mapping_download[tg_query.type](tg_query)
-            print(f"{data.imageUrl=}")
-            with Session(engine) as session:
-                if session.get(MediaPhoto, data.url) is None:
-                    content = MediaPhoto(
-                        url=data.url,
-                        media=base64.b64encode(
-                            requests.get(data.imageUrl).content
-                        ).decode(),
-                    )
-                    session.add(content)
-                    session.commit()
-            data.imageUrl = generate_url(
-                urljoin(settings.BASE_URL, "/telegram/image"), {"url": data.url}
-            )
+            if data.imageUrl is not None:
+                with open(
+                    os.path.join(settings.FILES_PATH, f"{tg_query.id.hex}.jpg"), "wb"
+                ) as f:
+                    f.write(requests.get(data.imageUrl).content)
+                data.imageUrl = urljoin(settings.FILES_URL, f"{tg_query.id.hex}.jpg")
             return data
 
         except ValueError as exc:
@@ -108,15 +89,10 @@ class CRUDTg:
 
     def get(self, tg_query: TgQuery) -> Union[Bot, Channel, Sticker]:
         with Session(engine) as session:
-            data = session.get(self.table_mapping[tg_query.type], tg_query.url)
-            return data
-
-    def get_media(self, url) -> bytes:
-        with Session(engine) as session:
-            media_b64 = session.get(MediaPhoto, url)
-        if media_b64 is None:
-            raise HTTPException(status_code=404)
-        return base64.b64decode(media_b64.media.encode())
+            table = self.table_mapping[tg_query.type]
+            query = select(table).where(table.url == tg_query.url)
+            data = session.exec(query)
+            return data.first()
 
     def get_categories(self, type_obj: Types):
         table = self.table_mapping[type_obj]
