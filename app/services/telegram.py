@@ -10,6 +10,7 @@ from subprocess import check_output
 
 import requests
 from bs4 import BeautifulSoup
+from loguru import logger
 
 from app.core.config import settings
 from app.schemas.telegram import BotDownload, ChannelDownload, StickerDownload
@@ -44,7 +45,7 @@ class StickerDownloader:
         if verify["ok"]:
             pass
         else:
-            print("Invalid token.")
+            logger.critical("Invalid token.")
             exit()
 
     def _api_request(self, fstring, params):
@@ -59,7 +60,7 @@ class StickerDownloader:
             return res
 
         except Exception as e:
-            print('API method {} failed. Error: "{}"'.format(fstring, e))
+            logger.error('API method {} failed. Error: "{}"'.format(fstring, e))
             return None
 
     def get_file(self, file_id):
@@ -92,10 +93,6 @@ class StickerDownloader:
             ]
             for i in as_completed(futures):
                 files.append(i.result())
-        # print({
-        #     'name': res['result']['name'].lower(),
-        #     'title': res['result']['title'],
-        #     "files:": [file['link'] for file in files]})
         sticker_set = StickerDownload.parse_obj(
             {
                 "name": res["result"]["name"].lower(),
@@ -118,7 +115,7 @@ class StickerDownloader:
         download_path = assure_folder_exists("webp", root=swd)
         downloads = []
 
-        print(
+        logger.info(
             'Starting download of "{}" into {}'.format(
                 sticker_set["name"], download_path
             )
@@ -133,12 +130,11 @@ class StickerDownloader:
                 downloads.append(i.result())
 
         end = time.time()
-        print(
+        logger.info(
             "Time taken to download {} stickers - {:.3f}s".format(
                 len(downloads), end - start
             )
         )
-        print()
 
         return downloads
 
@@ -156,7 +152,7 @@ class StickerDownloader:
         webp_files = [os.path.join(webp_folder, i) for i in os.listdir(webp_folder)]
         png_files = []
 
-        print('Converting stickers to pngs "{}"..'.format(name))
+        logger.info('Converting stickers to pngs "{}"..'.format(name))
         start = time.time()
         with ThreadPoolExecutor(max_workers=self.THREADS) as executor:
             futures = [
@@ -171,12 +167,11 @@ class StickerDownloader:
                 png_files.append(i.result())
 
         end = time.time()
-        print(
+        logger.info(
             "Time taken to convert {} stickers - {:.3f}s".format(
                 len(png_files), end - start
             )
         )
-        print()
 
 
 class TgDownloader(StickerDownloader):

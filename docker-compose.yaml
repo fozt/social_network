@@ -4,11 +4,11 @@ services:
 
   fastapi_tg:
     container_name: fastapi_tg
-    build: ./social
+    build: ./
     restart: always
     command: "uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000"
     volumes:
-      - ./social:/code
+      - ./:/code
     expose:
       - "8000"
     ports:

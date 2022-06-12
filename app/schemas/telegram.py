@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, HttpUrl, validator
 
 from app.models.telegram import BaseDownloadContent
 
@@ -21,7 +21,7 @@ class Sorting(str, Enum):
 
 
 class TgQueryInput(BaseModel):
-    url: str
+    url: HttpUrl
     category: Optional[str]
     language: Optional[str]
 
@@ -42,8 +42,10 @@ class TgQuery(TgQueryInput):
             return Types.BOT
         elif "t.me/addstickers" in url:
             return Types.STICKER
-        else:
+        elif "t.me" in url:
             return Types.CHANNEL
+        else:
+            raise ValueError("Invalid telegram content URL.")
 
 
 class ChannelDownload(BaseDownloadContent):

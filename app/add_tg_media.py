@@ -2,6 +2,8 @@ import json
 
 import bs4
 import requests
+from requests import JSONDecodeError
+from loguru import logger
 from tqdm.auto import tqdm
 
 payload = {}
@@ -86,7 +88,7 @@ for language in tqdm(["en", "ru"]):
                     elif type_obj == "sticker" or type_obj == "стикер":
                         tg_url = f'https://t.me/addstickers/{name.split("-")[1]}'
                     else:
-                        print(f"Warn! {type_obj}")
+                        logger.warning(f"Warn! {type_obj}")
                         continue
 
                     resp = requests.request(
@@ -96,9 +98,8 @@ for language in tqdm(["en", "ru"]):
                             {"url": tg_url, "category": category, "language": language}
                         ),
                     )
-                    # time.sleep(0.1)
                     try:
                         if resp.status_code not in (200, 409):
-                            print(type_obj, name, resp.json())
-                    except:
+                            logger.debug(type_obj, name, resp.json())
+                    except JSONDecodeError:
                         pass

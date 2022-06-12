@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import HttpUrl
 from sqlalchemy.exc import IntegrityError
 
 from app.crud.telegram import crud_tg
@@ -25,7 +26,10 @@ def add_object(query: TgQueryInput):
 
 
 @router.get("/object", response_model=MediaOut)
-def get_object(url: str):
+def get_object_info(url: HttpUrl):
+    """
+    Gets information about the added object
+    """
     obj = crud_tg.get(TgQuery(url=url))
     if obj is None:
         raise HTTPException(status_code=404)
@@ -33,7 +37,10 @@ def get_object(url: str):
 
 
 @router.get("/preview", response_model=MediaOut)
-def preview_object(url: str):
+def preview_object(url: HttpUrl):
+    """
+    Gets preliminary information about the object
+    """
     obj = crud_tg.get(TgQuery(url=url))
     if obj is None:
         obj = crud_tg.download_content(TgQuery(url=url).json())

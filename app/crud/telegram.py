@@ -1,12 +1,10 @@
-import base64
 import os.path
 from typing import List, Optional, Union
 from urllib.parse import urljoin
 
 import requests
-from fastapi import HTTPException
+from loguru import logger
 from sqlmodel import Session, select
-from starlette import status
 
 from app.core.config import settings
 from app.db.session import engine
@@ -45,9 +43,7 @@ class CRUDTg:
 
     def create(self, tg_query: TgQuery) -> Union[Bot, Channel, Sticker]:
         if self.get(tg_query) is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Resource already exists"
-            )
+            raise ValueError
         content = self.download_content(tg_query.json())
         content.imageUrl = content.imageUrl
         with Session(engine) as session:
@@ -61,16 +57,18 @@ class CRUDTg:
         tg_query = TgQuery.parse_raw(tg_query_json)
         try:
             data = self.content_mapping_download[tg_query.type](tg_query)
-            if data.imageUrl is not None:
-                with open(
-                    os.path.join(settings.FILES_PATH, f"{tg_query.id.hex}.jpg"), "wb"
-                ) as f:
-                    f.write(requests.get(data.imageUrl).content)
-                data.imageUrl = urljoin(settings.FILES_URL, f"{tg_query.id.hex}.jpg")
-            return data
-
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        except Exception as exc:
+            logger.exception(
+                exc,
+            )
+            raise ValueError("Invalid content")
+        if data.imageUrl is not None:
+            with open(
+                os.path.join(settings.FILES_PATH, f"{tg_query.id.hex}.jpg"), "wb"
+            ) as f:
+                f.write(requests.get(data.imageUrl).content)
+            data.imageUrl = urljoin(settings.FILES_URL, f"{tg_query.id.hex}.jpg")
+        return data
 
     def _download_channel(self, tg_query: TgQuery) -> Channel:
         channel = self.tg_downloader.download_channel_info(tg_query.name)
