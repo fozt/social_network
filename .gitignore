@@ -6,3 +6,4 @@ __pycache__
 db_docker
 data
 app/out.log
+out.log

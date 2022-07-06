@@ -2,8 +2,8 @@ import json
 
 import bs4
 import requests
-from requests import JSONDecodeError
 from loguru import logger
+from requests import JSONDecodeError
 from tqdm.auto import tqdm
 
 payload = {}
