@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column
-from sqlalchemy.dialects.postgresql import JSON, TEXT
+from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, SQLModel
 
 

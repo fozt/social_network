@@ -1,7 +1,6 @@
 from sqlmodel import SQLModel, create_engine
 from sqlmodel.sql.expression import SelectOfScalar
 
-from app import db
 from app.core.config import settings
 
 engine = create_engine(

@@ -15,9 +15,21 @@ def get_info_by_url(webpage_url: HttpUrl) -> YoutubeInfo:
         except youtube_dl.DownloadError as exc:
             raise ValueError(exc)
         try:
-            video_url = next(
-                filter(lambda x: x["ext"] in ("mp4", "m4a"), data["requested_formats"])
-            )["url"]
+            try:
+                video_url = next(
+                    filter(
+                        lambda x: x["ext"] in ("mp4", "m4a")
+                        and x["format_note"] == "360p",
+                        data["formats"],
+                    )
+                )["url"]
+                print("VALID")
+            except StopIteration:
+                video_url = next(
+                    filter(
+                        lambda x: x["ext"] in ("mp4", "m4a"), data["requested_formats"]
+                    )
+                )["url"]
             return YoutubeInfo(
                 id=data["id"],
                 title=data["title"],
@@ -30,7 +42,7 @@ def get_info_by_url(webpage_url: HttpUrl) -> YoutubeInfo:
                 description=data["description"],
                 tags=data["tags"],
             )
-        except:
+        except:  # noqa
             msg = "Invalid parsing Youtube data"
             logger.exception(msg)
             raise ValueError(msg)

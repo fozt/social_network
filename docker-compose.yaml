@@ -21,10 +21,6 @@ services:
     image: postgres:13.4
     restart: always
     container_name: database_tg
-    ports:
-      - "5454:5432"  # Remove this on production
-    expose:
-      - 5432
     volumes:
       - ./db_docker:/var/lib/postgresql/data
     environment:
